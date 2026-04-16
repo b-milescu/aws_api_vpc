@@ -1,0 +1,14 @@
+# Development dependencies
+-r requirements.txt
+
+# CDK
+aws-cdk-lib>=2.120.0,<3.0.0
+constructs>=10.0.0,<11.0.0
+
+# Testing
+pytest>=7.0.0,<9.0.0
+pytest-mock>=3.0.0,<4.0.0
+moto>=5.0.0,<5.2.0
+
+# Linting and formatting
+ruff>=0.3.0,<1.0.0

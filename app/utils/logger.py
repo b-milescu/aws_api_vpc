@@ -1,0 +1,7 @@
+"""Structured logger initialization."""
+
+from __future__ import annotations
+
+from aws_lambda_powertools import Logger
+
+logger = Logger(service="vpc-provisioning-api")
