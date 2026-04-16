@@ -272,25 +272,33 @@ cdk destroy VpcProvisioningStack
 
 The API uses **Amazon Cognito User Pools** with JWT authorizer at API Gateway.
 
-### Create a test user
+After deploying, source the generated env file to get the stack outputs:
 
 ```bash
-# Replace with your User Pool ID and Client ID from CDK outputs
-USER_POOL_ID="<CognitoUserPoolId>"
-CLIENT_ID="<CognitoUserPoolClientId>"
+source demo/.env.demo
+```
 
-# Sign up a user (username = email)
-aws cognito-idp sign-up \
-  --client-id "$CLIENT_ID" \
-  --username "test@example.com" \
-  --password "Test1234!@" \
-  --user-attributes Name=email,Value=test@example.com \
+This exports `COGNITOUSERPOOLID`, `COGNITOUSERPOOLCLIENTID`, and `APIURL`.
+
+### Create a test user
+
+The app client is configured for `ADMIN_USER_PASSWORD_AUTH` only, so users must be created via the admin API (no email confirmation required):
+
+```bash
+USERNAME="test-user"
+PASSWORD='Test1234!@'
+
+aws cognito-idp admin-create-user \
+  --user-pool-id "$COGNITOUSERPOOLID" \
+  --username "$USERNAME" \
+  --user-attributes Name=email,Value="${USERNAME}@example.com" \
   --region us-east-1
 
-# Confirm the user (if auto-confirm is not enabled)
-aws cognito-idp admin-confirm-sign-up \
-  --user-pool-id "$USER_POOL_ID" \
-  --username "test@example.com" \
+aws cognito-idp admin-set-user-password \
+  --user-pool-id "$COGNITOUSERPOOLID" \
+  --username "$USERNAME" \
+  --password "$PASSWORD" \
+  --permanent \
   --region us-east-1
 ```
 
@@ -298,10 +306,10 @@ aws cognito-idp admin-confirm-sign-up \
 
 ```bash
 TOKEN=$(aws cognito-idp admin-initiate-auth \
-  --user-pool-id "$USER_POOL_ID" \
-  --client-id "$CLIENT_ID" \
+  --user-pool-id "$COGNITOUSERPOOLID" \
+  --client-id "$COGNITOUSERPOOLCLIENTID" \
   --auth-flow ADMIN_USER_PASSWORD_AUTH \
-  --auth-parameters USERNAME=test@example.com,PASSWORD="Test1234!@" \
+  --auth-parameters "USERNAME=${USERNAME},PASSWORD=${PASSWORD}" \
   --query "AuthenticationResult.AccessToken" \
   --output text \
   --region us-east-1)
@@ -309,8 +317,16 @@ TOKEN=$(aws cognito-idp admin-initiate-auth \
 
 ### Use the token in API calls
 
+**Health check (public — no token needed):**
+
 ```bash
-curl -s -X POST "https://<api-id>.execute-api.us-east-1.amazonaws.com/vpcs" \
+curl -s "${APIURL}/health"
+```
+
+**Create a VPC:**
+
+```bash
+REQUEST_ID=$(curl -s -X POST "${APIURL}/vpcs" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -322,7 +338,29 @@ curl -s -X POST "https://<api-id>.execute-api.us-east-1.amazonaws.com/vpcs" \
       {"name": "private-a", "cidr_block": "10.0.2.0/24", "availability_zone": "us-east-1a"}
     ],
     "tags": {"environment": "demo"}
-  }'
+  }' | jq -r '.request_id')
+echo "Request ID: $REQUEST_ID"
+```
+
+**Get a specific request (poll until SUCCEEDED or FAILED):**
+
+```bash
+curl -s "${APIURL}/vpcs/${REQUEST_ID}" \
+  -H "Authorization: Bearer $TOKEN" | jq .
+```
+
+**List all requests:**
+
+```bash
+curl -s "${APIURL}/vpcs" \
+  -H "Authorization: Bearer $TOKEN" | jq .
+```
+
+**Delete a VPC:**
+
+```bash
+curl -s -X DELETE "${APIURL}/vpcs/${REQUEST_ID}" \
+  -H "Authorization: Bearer $TOKEN" | jq .
 ```
 
 ---
