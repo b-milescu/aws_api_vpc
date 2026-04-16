@@ -151,6 +151,7 @@ class VpcProvisioningStack(Stack):
                     "pip install -r /asset-input/requirements.txt -t /asset-output "
                     "--platform manylinux2014_x86_64 --implementation cp "
                     "--python-version 312 --only-binary=:all: "
+                    "--no-cache-dir --disable-pip-version-check "
                     "&& cp -r /asset-input/app /asset-output/",
                 ],
             ),

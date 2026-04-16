@@ -13,7 +13,7 @@ from http import HTTPStatus
 
 from aws_lambda_powertools import Logger
 
-from app.models.schemas import RequestStatus
+from app.models.schemas import RequestStatus, VpcRecordResponse
 from app.services.request_store import RequestStore, RequestNotFoundError
 from app.services.vpc_provisioner import VpcProvisioner
 
@@ -43,6 +43,26 @@ def handler(event, context):
 
         store = RequestStore()
         record = store.get_record(request_id)
+
+        # Already fully deleted — return current record, no AWS calls needed
+        if record.status == RequestStatus.DELETED:
+            logger.info(f"Request {request_id} already DELETED, returning current record")
+            resp = VpcRecordResponse(
+                request_id=record.request_id,
+                status=record.status.value,
+                name=record.name,
+                region=record.region,
+                cidr_block=record.cidr_block,
+                subnets_requested=record.subnets_requested,
+                tags=record.tags,
+                requested_by=record.requested_by,
+                vpc_id=record.vpc_id,
+                subnet_ids=record.subnet_ids,
+                error_message=record.error_message,
+                created_at=record.created_at,
+                updated_at=record.updated_at,
+            )
+            return _build_response(resp.model_dump(), HTTPStatus.OK)
 
         # Nothing to delete if provisioning never succeeded or never started
         if record.vpc_id is None:
