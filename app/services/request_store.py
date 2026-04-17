@@ -88,9 +88,7 @@ class RequestStore:
         list_items = [
             VpcListResponseItem(
                 request_id=r.request_id,
-                status=r.status.value
-                if isinstance(r.status, RequestStatus)
-                else r.status,
+                status=r.status.value,
                 name=r.name,
                 vpc_id=r.vpc_id,
                 created_at=r.created_at,
@@ -100,27 +98,6 @@ class RequestStore:
 
         return VpcListResponse(items=list_items, count=len(list_items))
 
-    def update_status(
-        self,
-        request_id: str,
-        status: RequestStatus,
-        vpc_id: str | None = None,
-        subnet_ids: list[dict] | None = None,
-        error_message: str | None = None,
-    ) -> VpcRecord:
-        """Convenience method to update key fields on an existing record."""
-        record = self.get_record(request_id)
-        record.status = status
-        record.updated_at = datetime.now(timezone.utc).isoformat()
-        if vpc_id is not None:
-            record.vpc_id = vpc_id
-        if subnet_ids is not None:
-            record.subnet_ids = subnet_ids
-        if error_message is not None:
-            record.error_message = error_message
-        self.update_record(record)
-        return record
-
 
 # ── DynamoDB serialisation helpers ────────────────────────────────────────────
 
@@ -129,9 +106,7 @@ def _to_dynamo(record: VpcRecord) -> dict:
     """Convert a VpcRecord to a flat dict suitable for DynamoDB."""
     return {
         "request_id": record.request_id,
-        "status": record.status.value
-        if isinstance(record.status, RequestStatus)
-        else record.status,
+        "status": record.status.value,
         "name": record.name,
         "region": record.region,
         "cidr_block": record.cidr_block,

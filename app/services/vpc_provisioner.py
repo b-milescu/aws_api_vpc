@@ -21,7 +21,7 @@ class VpcProvisioner:
         else:
             self._ec2 = boto3.client("ec2", region_name=self.region)
 
-    def create_vpc(self, cidr_block: str, name: str, tags: dict[str, str]) -> dict:
+    def create_vpc(self, cidr_block: str, name: str, tags: dict[str, str]) -> str:
         """Create a VPC and return its VPC ID."""
         logger.info(f"Creating VPC '{name}' with CIDR {cidr_block}")
         resp = self._ec2.create_vpc(

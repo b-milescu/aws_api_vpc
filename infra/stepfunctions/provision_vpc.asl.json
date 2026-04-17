@@ -4,9 +4,12 @@
   "States": {
     "Provision VPC and Subnets": {
       "Type": "Task",
-      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:vpc-provision-task",
-      "Payload": {
-        "request_id.$": "$.request_id"
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:vpc-provision-task",
+        "Payload": {
+          "request_id.$": "$.request_id"
+        }
       },
       "Retry": [
         {
@@ -21,8 +24,41 @@
           "BackoffRate": 2
         }
       ],
-      "End": true,
-      "ResultPath": null
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "Handle Provision Failure"
+        }
+      ],
+      "ResultPath": null,
+      "End": true
+    },
+    "Handle Provision Failure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:vpc-sfn-failure-handler",
+        "Payload": {
+          "error.$": "$.Error",
+          "cause.$": "$.Cause",
+          "input.$": "$$.Execution.Input"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "ResultPath": null,
+      "End": true
     }
   },
   "TimeoutSeconds": 600
