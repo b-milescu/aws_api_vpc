@@ -75,48 +75,6 @@ All infrastructure is defined as code using **AWS CDK (Python)** and deployed as
 
 ---
 
-## Repository structure
-
-```
-repo/
-  app/
-    handlers/          Lambda entry points
-      create_vpc.py    POST /vpcs
-      get_vpc.py       GET /vpcs/{request_id}
-      list_vpcs.py     GET /vpcs
-      delete_vpc.py    DELETE /vpcs/{request_id}
-      health.py        GET /health
-      provision_vpc_task.py      Step Functions task
-      sfn_failure_handler.py     Step Functions catch handler
-    services/
-      request_store.py    DynamoDB persistence
-      vpc_provisioner.py  EC2 VPC/subnet creation
-    models/
-      schemas.py          Pydantic request/response models
-    utils/
-      cidr_validator.py   CIDR/subnet validation
-      logger.py           Structured logging (Lambda Powertools)
-  infra/
-    app.py              CDK app entry point
-    stacks/
-      vpc_provisioning_stack.py  Main CDK stack
-  tests/
-    unit/
-      test_cidr_validator.py
-      test_request_store.py
-      test_handlers.py
-  docs/
-    architecture.md
-  cdk.json
-  requirements.txt
-  requirements-dev.txt
-  pyproject.toml
-  README.md
-  review-packet.md
-```
-
----
-
 ## API endpoints
 
 | Method | Path | Auth | Purpose |
